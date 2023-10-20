@@ -57,12 +57,29 @@ public class AccountService {
         if (sum <= 0) {
             throw new DepositNegativeSumException("Cannot deposit negative sums");
         }
-
         Account account = accountRepository.findAccountByCbu(cbu);
+
+        if (sum >= Promo.MIN_THRESHOLD) {
+            applyPromo(sum, account);
+        }
         account.setBalance(account.getBalance() + sum);
         accountRepository.save(account);
 
         return account;
+    }
+
+    public void applyPromo(Double depositAmount, Account account) {
+        double promoAmount = depositAmount * Promo.MULTIPLIER;
+        if (promoToApplyLowerThanCap(promoAmount, account.getCurrentPromoGiven())) {
+            account.setCurrentPromoGiven(promoAmount);
+            account.setBalance(account.getBalance() + promoAmount);
+        } else {
+            account.setBalance(account.getBalance() + (Promo.MAX_AMOUNT - account.getCurrentPromoGiven()));
+        }
+    }
+
+    private boolean promoToApplyLowerThanCap(Double promoAmount, Double currentPromoGiven) {
+        return promoAmount < currentPromoGiven + Promo.MAX_AMOUNT;
     }
 
 }
